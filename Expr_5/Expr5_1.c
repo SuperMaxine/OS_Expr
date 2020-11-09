@@ -30,7 +30,7 @@ int main(){
     // 开启消息队列
     int msgid = open_queue(1234);
 
-    //子进程1
+    //子进程receiver
     if(fork() == 0){
         struct msg_st b;
         b.msg_type = 1; // 表示获取队列中第一个可用的消息
@@ -47,7 +47,7 @@ int main(){
         }
         exit(0); // 退出子进程
     }else{
-        //子进程2
+        //子进程sender
         if(fork() > 0)wait(NULL); // 为了使子进程中的scanf可以获得终端中的输入，主进程要阻塞等待子进程的结束
         else{
             struct msg_st a;
