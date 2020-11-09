@@ -35,20 +35,18 @@ int main(){
     }
     //子进程1
     if(fork() == 0){
-        printf("2\n");
         struct msg_st b;
         long int msgtype = 0;
-        printf("2\n");
         b.msg_type = 1;
-        printf("2\n");
         while(1){
-            // printf("22\n");
             if(msgrcv(msgid, (void *)&b, 100, msgtype, 0) == -1){
-                // printf("222\n");
+                // printf("err\n");
             }else{
-                printf("The message is %s\n", b.text);
+                if(!strcmp(b.text, "exit"))break;
+                else printf("The message is %s\n", b.text);
             }
         }
+        exit(0);
     }else{
         //子进程2
         if(fork() > 0)wait(NULL);
@@ -57,17 +55,15 @@ int main(){
             struct msg_st a;
             a.msg_type = 1;
             scanf("%s",a.text);
-            printf("1\n");
             while(1){
-                printf("11\n");
                 msgsnd(msgid, (void *)&a, 100, 0);
                 scanf("%s",a.text);
-                printf("input %s", a.text);
+                // printf("input %s", a.text);
                 if(!strcmp(a.text, "exit"))break;
             }
             exit(0);
         }
     }
-    wait(NULL);
+    // wait(NULL);
     return 0;
 }
