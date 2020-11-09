@@ -5,12 +5,12 @@
 
 #define N 2 //缓冲区长度为2
 
+sem_t pos; //信号量，表示轮到生产者1向缓冲区写数
+sem_t neg; //信号量，表示轮到生产者2向缓冲区写数
 sem_t doing; //信号量，表示有线程正在对缓冲区进行读/写
 sem_t content; //信号量，表示缓冲区内的内容达到2，可以进行一次读取
-sem_t pos; 
-sem_t neg;
-sem_t plus;
-sem_t mult;
+sem_t plus; //信号量，表示轮到消费者1从缓冲区中取数
+sem_t mult; //信号量，表示轮到消费者2从缓冲区中取数
 
 int Buf[N] = {0}; //环形缓冲区
 int in = 0; //环形缓冲区写位置
@@ -34,11 +34,11 @@ void* producer1(){
 	FILE *fp;
     fp = fopen("./1.dat", "rb"); //读取1.dat中的内容
 	for(int i = 0; i < 10; ++i){
-		sem_wait(&pos);
+		sem_wait(&pos); //等待轮到生产者1向缓冲区中写数
 		sem_wait(&doing); //等待无人在环形缓冲区中进行读写操作
 		put(getw(fp)); //从文件中读取一个数放在环形缓冲区中
 		sem_post(&doing); //增加doing信号量的值表明在缓冲区中的读写操作已经完成
-		sem_post(&neg);
+		sem_post(&neg); //表示生产者1已经向缓冲区中写数，下轮应该生产者2向缓冲区写数
 	}
 	fclose(fp);
 }
@@ -47,11 +47,11 @@ void* producer2(){
 	FILE *fp;
     fp = fopen("./2.dat", "rb"); //读取2.dat中的内容
 	for(int i = 0; i < 10; ++i){
-		sem_wait(&neg);
+		sem_wait(&neg); //等待轮到生产者2向缓冲区中写数
 		sem_wait(&doing); //等待无人在环形缓冲区中进行读写操作
 		put(getw(fp)); //从文件中读取一个数放在环形缓冲区中
 		sem_post(&doing); //增加doing信号量的值表明在缓冲区中的读写操作已经完成
-		sem_post(&pos);
+		sem_post(&pos); //表示生产者2已经向缓冲区中写数，下轮应该生产者1向缓冲区写数
 	}
 	fclose(fp);
 }
@@ -61,13 +61,13 @@ void* consumer1(){
 	int a, b;
 	for(int i = 0; i < 5; ++i){
 		sem_wait(&content); //等待环形缓冲区中的内容足够一次读取
-		sem_wait(&plus);
+		sem_wait(&plus); //等待轮到消费者1从缓冲区中读数
 		sem_wait(&doing); //等待无人在环形缓冲区中进行读写操作
 		a = take(); //从环形缓冲区中取一个数作为第一操作数
 		b = take(); //从环形缓冲区中再取一个数作为第二操作数
 		printf("%d + %d = %d\n",a, b, a+b); //计算两操作数之和并打印
 		sem_post(&doing); //增加doing信号量的值表明在缓冲区中的读写操作已经完成
-		sem_post(&mult);
+		sem_post(&mult); //表示消费者1已经从缓冲区中读数，下轮应该消费者2从缓冲区读数
 	}
 }
 
@@ -76,23 +76,23 @@ void* consumer2(){
 	int a, b;
 	for(int i = 0; i < 5; ++i){
 		sem_wait(&content); //等待环形缓冲区中的内容足够一次读取
-		sem_wait(&mult);
+		sem_wait(&mult); //等待轮到消费者2从缓冲区中读数
 		sem_wait(&doing); //等待无人在环形缓冲区中进行读写操作
 		a = take(); //从环形缓冲区中取一个数作为第一操作数
 		b = take(); //从环形缓冲区中再取一个数作为第二操作数
 		printf("%d * %d = %d\n",a, b, a*b); //计算两操作数之积并打印
 		sem_post(&doing); //增加doing信号量的值表明在缓冲区中的读写操作已经完成
-		sem_post(&plus);
+		sem_post(&plus); //表示消费者2已经从缓冲区中读数，下轮应该消费者1从缓冲区读数
 	}
 }
 
 int main(){
+	sem_init(&pos,0,1); //初始化信号量pos为1，表示奇数轮由生产者1向缓冲区中写数
+	sem_init(&neg,0,0); //初始化信号量neg为0，表示偶数轮由生产者2向缓冲区写数
 	sem_init(&doing, 0, 1); //初始化信号量doing为1，表示同一时刻只能由1个线程对缓冲区进行读写操作
 	sem_init(&content, 0, 0); //初始化信号量content为0，开始时缓冲区中还未放置数据
-	sem_init(&pos,0,1);
-	sem_init(&neg,0,0);
-	sem_init(&plus,0,1);
-	sem_init(&mult,0,0);
+	sem_init(&plus,0,1); //初始化信号量plus为1，表示奇数轮由消费者1从缓冲区中读数
+	sem_init(&mult,0,0); //初始化信号量mult为0，表示偶数轮由消费者2从缓冲区中读数
 	
 
 	//将数组的数据存入文件
