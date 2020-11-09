@@ -5,12 +5,17 @@
 
 #define N 2
 
+sem_t space;
+sem_t doing;
+sem_t content;
+
 int Buf[N] = {0};
 int in = 0;
 int out = 0;
 
 void put(int a){
 	Buf[in] = a;
+	if(in + 1 >= N)sem_post(&content);
 	in = (++in)%N;
 }
 
@@ -21,26 +26,56 @@ int take(){
 }
 
 
-sem_t space;
-sem_t doing;
-sem_t content;
-
-void producer1(){
+void* producer1(){
 	FILE *fp;
     fp = fopen("./1.dat", "rb");
 	for(int i = 0; i < 10; ++i){
-		printf("%d\n",getw(fp));
+		sem_wait(&space);
+		sem_wait(&doing);
+		put(getw(fp));
+		sem_post(&doing);
 	}
 	fclose(fp);
 }
 
-void producer2(){
+void* producer2(){
 	FILE *fp;
     fp = fopen("./2.dat", "rb");
 	for(int i = 0; i < 10; ++i){
-		printf("%d\n",getw(fp));
+		sem_wait(&space);
+		sem_wait(&doing);
+		put(getw(fp));
+		sem_post(&doing);
 	}
 	fclose(fp);
+}
+
+void* consumer1(){
+	int a, b;
+	for(int i = 0; i < 5; ++i){
+		sem_wait(&content);
+		sem_wait(&doing);
+		a = take();
+		b = take();
+		printf("%d + %d = %d\n",a, b, a+b);
+		sem_post(&doing);
+		sem_post(&space);
+		sem_post(&space);
+	}
+}
+
+void* consumer2(){
+	int a, b;
+	for(int i = 0; i < 5; ++i){
+		sem_wait(&content);
+		sem_wait(&doing);
+		a = take();
+		b = take();
+		printf("%d * %d = %d\n",a, b, a*b);
+		sem_post(&doing);
+		sem_post(&space);
+		sem_post(&space);
+	}
 }
 
 int main(){
@@ -63,8 +98,15 @@ int main(){
     fclose(fp1);
 	fclose(fp2);
 
-	producer1();
-	producer2();
+	pthread_t p1, p2, c1, c2; //定义线程执行体
+	pthread_create(&p1,NULL,producer1,NULL); //创建p1
+	pthread_create(&p2,NULL,producer2,NULL); //创建p2
+	pthread_create(&c1,NULL,consumer1,NULL); //创建c1
+	pthread_create(&c2,NULL,consumer2,NULL); //创建c2
 
+	pthread_join(p1,NULL);
+	pthread_join(p2,NULL);
+	pthread_join(c1,NULL);
+	pthread_join(c2,NULL);
     return 0;
 }
