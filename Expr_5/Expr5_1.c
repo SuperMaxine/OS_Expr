@@ -42,7 +42,7 @@ int main(){
             }else{
                 // 成功接受到消息
                 if(!strcmp(b.text, "exit"))break; // 如果是“exit”则退出循环
-                else printf("The message is %s\n", b.text); // 否则打印消息
+                else printf("The message form other process is %s\n", b.text); // 否则打印消息
             }
         }
         exit(0); // 退出子进程
