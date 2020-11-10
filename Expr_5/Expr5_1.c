@@ -33,11 +33,12 @@ int main(){
     //子进程receiver
     if(fork() == 0){
         struct msg_st b;
+        long int msgtype = 0;
         b.msg_type = 1; // 表示获取队列中第一个可用的消息
 
         // 循环接受消息队列中的消息
         while(1){
-            if(msgrcv(msgid, (void *)&b, 100, 0, 0) == -1){
+            if(msgrcv(msgid, (void *)&b, 100, msgtype, 0) == -1){
                 // printf("err\n");
             }else{
                 // 成功接受到消息
